@@ -11,16 +11,16 @@ if imagen is None:
     print("No se pudo cargar la imagen")
     exit()
 
-# 1️⃣ Quitar ruido (filtro gaussiano)
+# Quitar ruido (filtro gaussiano)
 imagen_sin_ruido = cv2.GaussianBlur(imagen, (5,5), 0)
 
-# 2️⃣ Convertir a escala de grises
+#Convertir a escala de grises
 gris = cv2.cvtColor(imagen_sin_ruido, cv2.COLOR_BGR2GRAY)
 
-# 3️⃣ Segmentación (umbral)
+#Segmentación (umbral)
 _, umbral = cv2.threshold(gris, 120, 255, cv2.THRESH_BINARY_INV)
 
-# 4️⃣ Detectar contornos
+#Detectar contornos
 bordes = cv2.Canny(gris, 50, 150)
 
 contornos, _ = cv2.findContours(umbral, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
