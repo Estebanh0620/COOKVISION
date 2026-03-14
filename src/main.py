@@ -2,7 +2,7 @@ import cv2
 import os
 
 # Ruta de la imagen de prueba
-ruta_imagen = "dataset/Tomates/Tre_001.jpg"
+ruta_imagen = "dataset/Onion/Oni_045.jpg"
 
 # Cargar imagen
 imagen = cv2.imread(ruta_imagen)
@@ -18,7 +18,7 @@ imagen_sin_ruido = cv2.GaussianBlur(imagen, (5,5), 0)
 gris = cv2.cvtColor(imagen_sin_ruido, cv2.COLOR_BGR2GRAY)
 
 #Segmentación (umbral)
-_, umbral = cv2.threshold(gris, 120, 255, cv2.THRESH_BINARY_INV)
+_, umbral = cv2.threshold(gris, 180, 255, cv2.THRESH_BINARY_INV)
 
 #Detectar contornos
 bordes = cv2.Canny(gris, 50, 150)
@@ -38,7 +38,7 @@ area_max = max(areas)
 for c in contornos:
     area = cv2.contourArea(c)
 
-    if 300 < area < 5000:
+    if 200 < area < 8000:
         cv2.drawContours(imagen_contornos, [c], -1, (0,255,0), 2)
 
 
