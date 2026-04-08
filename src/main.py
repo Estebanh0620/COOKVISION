@@ -1,8 +1,12 @@
 import cv2
 import os
 
-# Ruta de la imagen de prueba
-ruta_imagen = "dataset/Onion/Oni_045.jpg"
+from procesamiento.ruido import quitar_ruido
+from procesamiento.segmentacion import segmentar_color
+from procesamiento.contornos import detectar_contornos
+
+# Ruta de la imagen
+ruta_imagen = "dataset/Onion/Oni_003.jpg"
 
 # Cargar imagen
 imagen = cv2.imread(ruta_imagen)
@@ -11,53 +15,42 @@ if imagen is None:
     print("No se pudo cargar la imagen")
     exit()
 
-# Quitar ruido (filtro gaussiano)
-imagen_sin_ruido = cv2.GaussianBlur(imagen, (5,5), 0)
+#preprocesamiento
+imagen_sin_ruido = quitar_ruido(imagen)
 
-#Convertir a escala de grises
-gris = cv2.cvtColor(imagen_sin_ruido, cv2.COLOR_BGR2GRAY)
+#segmentación
+umbral = segmentar_color(imagen_sin_ruido)
 
-#Segmentación (umbral)
-_, umbral = cv2.threshold(gris, 180, 255, cv2.THRESH_BINARY_INV)
+#detección de contornos + caracterización
+imagen_contornos, contador = detectar_contornos(imagen, umbral)
 
-#Detectar contornos
-bordes = cv2.Canny(gris, 50, 150)
+# Mostrar resultado en consola
+print("Objetos detectados:", contador)
 
-contornos, _ = cv2.findContours(umbral, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-# Dibujar contornos
-imagen_contornos = imagen.copy()
-
-areas = []
-
-for c in contornos:
-    areas.append(cv2.contourArea(c))
-
-area_max = max(areas)
-
-for c in contornos:
-    area = cv2.contourArea(c)
-
-    if 200 < area < 8000:
-        cv2.drawContours(imagen_contornos, [c], -1, (0,255,0), 2)
-
+# Agregar texto a la imagen
+cv2.putText(
+    imagen_contornos,
+    f"Objetos: {contador}",
+    (20,40),
+    cv2.FONT_HERSHEY_SIMPLEX,
+    1,
+    (0,255,0),
+    2
+)
 
 # Crear carpeta resultados si no existe
 os.makedirs("resultados", exist_ok=True)
 
 # Guardar resultados
 cv2.imwrite("resultados/sin_ruido.jpg", imagen_sin_ruido)
-cv2.imwrite("resultados/gris.jpg", gris)
 cv2.imwrite("resultados/segmentada.jpg", umbral)
 cv2.imwrite("resultados/contornos.jpg", imagen_contornos)
-
-# Mostrar cantidad de objetos detectados
-print("Objetos detectados:", len(contornos))
 
 # Mostrar imágenes
 cv2.imshow("Original", imagen)
 cv2.imshow("Segmentada", umbral)
 cv2.imshow("Contornos", imagen_contornos)
+cv2.imshow("HSV", hsv)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
