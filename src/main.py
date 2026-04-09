@@ -2,11 +2,12 @@ import cv2
 import os
 
 from procesamiento.ruido import quitar_ruido
-from procesamiento.segmentacion import segmentar_color
+from procesamiento.segmentacion import segmentar
 from procesamiento.contornos import detectar_contornos
 
 # Ruta de la imagen
-ruta_imagen = "dataset/Onion/Oni_003.jpg"
+ruta_imagen = "dataset/Onion/Oni_040.jpg" 
+#ruta_imagen = "dataset/Tomates/Tre_045.jpg" 
 
 # Cargar imagen
 imagen = cv2.imread(ruta_imagen)
@@ -18,16 +19,19 @@ if imagen is None:
 #preprocesamiento
 imagen_sin_ruido = quitar_ruido(imagen)
 
-#segmentación
-umbral = segmentar_color(imagen_sin_ruido)
+#convertir a escala de grises (FALTABA)
+gris = cv2.cvtColor(imagen_sin_ruido, cv2.COLOR_BGR2GRAY)
 
-#detección de contornos + caracterización
+#segmentación
+umbral = segmentar(gris)
+
+#contornos + caracterización
 imagen_contornos, contador = detectar_contornos(imagen, umbral)
 
 # Mostrar resultado en consola
 print("Objetos detectados:", contador)
 
-# Agregar texto a la imagen
+# Texto en imagen
 cv2.putText(
     imagen_contornos,
     f"Objetos: {contador}",
@@ -38,19 +42,20 @@ cv2.putText(
     2
 )
 
-# Crear carpeta resultados si no existe
+# Crear carpeta resultados
 os.makedirs("resultados", exist_ok=True)
 
 # Guardar resultados
 cv2.imwrite("resultados/sin_ruido.jpg", imagen_sin_ruido)
+cv2.imwrite("resultados/gris.jpg", gris)
 cv2.imwrite("resultados/segmentada.jpg", umbral)
 cv2.imwrite("resultados/contornos.jpg", imagen_contornos)
 
 # Mostrar imágenes
 cv2.imshow("Original", imagen)
+cv2.imshow("Gris", gris)
 cv2.imshow("Segmentada", umbral)
 cv2.imshow("Contornos", imagen_contornos)
-cv2.imshow("HSV", hsv)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
