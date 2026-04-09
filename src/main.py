@@ -7,7 +7,7 @@ from procesamiento.contornos import detectar_contornos
 
 # ── Ruta de la imagen ───────────────────────────────────────
 ruta_imagen = "dataset/Onion/Oni_040.jpg"
-#ruta_imagen = "dataset/Tomates/Tre_045.jpg"
+#ruta_imagen = "dataset/Tomates/Tre_040.jpg"
 
 # ── Cargar imagen ───────────────────────────────────────────
 imagen = cv2.imread(ruta_imagen)
