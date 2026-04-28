@@ -1,0 +1,144 @@
+import { useState } from "react";
+import {
+  View, Text, Image, TouchableOpacity,
+  ActivityIndicator, Alert, StyleSheet, SafeAreaView,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker";
+
+const API_URL = "https://TU-API.railway.app/analizar"; // 👈 cambia esto después
+
+type Estado = "idle" | "cargando" | "resultado" | "error";
+
+interface Resultado {
+  cantidad: number;
+  imagen_resultado: string; // base64
+}
+
+export default function Index() {
+  const [estado, setEstado] = useState<Estado>("idle");
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<Resultado | null>(null);
+
+  const seleccionarImagen = async (fuente: "camara" | "galeria") => {
+    const { status } = fuente === "camara"
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert("Permiso denegado", "Necesitamos acceso para continuar.");
+      return;
+    }
+
+    const result = fuente === "camara"
+      ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.8 });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setImageUri(asset.uri);
+      await enviarImagen(asset.base64!);
+    }
+  };
+
+  const enviarImagen = async (base64: string) => {
+    setEstado("cargando");
+    setResultado(null);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagen: base64 }),
+      });
+      if (!res.ok) throw new Error("Error del servidor");
+      const data: Resultado = await res.json();
+      setResultado(data);
+      setEstado("resultado");
+    } catch {
+      setEstado("error");
+    }
+  };
+
+  return (
+    <SafeAreaView style={s.container}>
+      <View style={s.header}>
+        <Text style={s.titulo}>Detector de objetos</Text>
+        <Text style={s.subtitulo}>Toma una foto o sube una imagen</Text>
+      </View>
+
+      {/* Área de imagen */}
+      <View style={s.preview}>
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={s.imagen} resizeMode="cover" />
+        ) : (
+          <Text style={s.previewLabel}>La imagen aparecerá aquí</Text>
+        )}
+      </View>
+
+      {/* Estado: cargando */}
+      {estado === "cargando" && (
+        <View style={s.estadoBox}>
+          <ActivityIndicator size="small" color="#185FA5" />
+          <Text style={s.estadoTexto}>Procesando imagen...</Text>
+        </View>
+      )}
+
+      {/* Estado: error */}
+      {estado === "error" && (
+        <View style={[s.estadoBox, s.errorBox]}>
+          <Text style={s.errorTexto}>
+            No se pudo conectar con el servidor. Intenta de nuevo.
+          </Text>
+        </View>
+      )}
+
+      {/* Estado: resultado */}
+      {estado === "resultado" && resultado && (
+        <View style={s.resultCard}>
+          <Text style={s.resultLabel}>Objetos detectados</Text>
+          <Text style={s.resultNum}>{resultado.cantidad}</Text>
+        </View>
+      )}
+
+      {/* Botones */}
+      <View style={s.botones}>
+        <TouchableOpacity
+          style={[s.btn, s.btnSecundario]}
+          onPress={() => seleccionarImagen("galeria")}
+          disabled={estado === "cargando"}
+        >
+          <Text style={s.btnTextoSec}>Galería</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.btn, s.btnPrimario]}
+          onPress={() => seleccionarImagen("camara")}
+          disabled={estado === "cargando"}
+        >
+          <Text style={s.btnTextoPri}>Tomar foto</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  container:    { flex: 1, backgroundColor: "#fff" },
+  header:       { padding: 20, borderBottomWidth: 0.5, borderColor: "#e0e0e0" },
+  titulo:       { fontSize: 20, fontWeight: "500" },
+  subtitulo:    { fontSize: 13, color: "#888", marginTop: 2 },
+  preview:      { margin: 16, height: 220, borderRadius: 12, backgroundColor: "#f5f5f5", borderWidth: 1.5, borderStyle: "dashed", borderColor: "#ccc", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  imagen:       { width: "100%", height: "100%" },
+  previewLabel: { fontSize: 13, color: "#999" },
+  estadoBox:    { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginBottom: 8, padding: 10, borderRadius: 8, backgroundColor: "#f0f4ff" },
+  estadoTexto:  { fontSize: 13, color: "#185FA5" },
+  errorBox:     { backgroundColor: "#fff0f0" },
+  errorTexto:   { fontSize: 13, color: "#c0392b" },
+  resultCard:   { marginHorizontal: 16, marginBottom: 8, borderRadius: 12, borderWidth: 0.5, borderColor: "#ddd", padding: 16, alignItems: "center" },
+  resultLabel:  { fontSize: 13, color: "#888", marginBottom: 4 },
+  resultNum:    { fontSize: 48, fontWeight: "500" },
+  botones:      { flexDirection: "row", gap: 10, paddingHorizontal: 16, marginTop: "auto", paddingBottom: 16 },
+  btn:          { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: "center" },
+  btnPrimario:  { backgroundColor: "#185FA5" },
+  btnSecundario:{ backgroundColor: "#f5f5f5", borderWidth: 0.5, borderColor: "#ccc" },
+  btnTextoPri:  { color: "#fff", fontWeight: "500", fontSize: 15 },
+  btnTextoSec:  { color: "#333", fontWeight: "500", fontSize: 15 },
+});
